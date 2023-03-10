@@ -1,0 +1,54 @@
+from jira import JIRA
+from docx import Document
+
+# Jira server URL and credentials
+JIRA_SERVER = 'https://your-jira-server.com'
+JIRA_USERNAME = 'your-jira-username'
+JIRA_PASSWORD = 'your-jira-password'
+
+# Jira project key and issue type for bug
+PROJECT_KEY = 'your-jira-project-key'
+ISSUE_TYPE = 'Bug'
+
+# Path to the DOCX file
+DOCX_FILE_PATH = '/path/to/docx/file'
+
+# Read the contents of the DOCX file
+document = Document(DOCX_FILE_PATH)
+
+# Extract the title, description, CVSS score, and remediation suggestion from the DOCX file
+title = document.core_properties.title
+
+description_start = False
+description = ''
+for paragraph in document.paragraphs:
+    if 'Description:' in paragraph.text:
+        description_start = True
+        continue
+    if description_start:
+        if 'CVSS Score:' in paragraph.text or 'Remediation Suggestion:' in paragraph.text:
+            break
+        else:
+            description += paragraph.text + '\n'
+
+cvss_score = ''
+remediation_suggestion = ''
+for paragraph in document.paragraphs:
+    if 'CVSS Score:' in paragraph.text:
+        cvss_score = paragraph.text
+    if 'Remediation Suggestion:' in paragraph.text:
+        remediation_suggestion = paragraph.text
+        break
+
+# Create a Jira issue with the extracted fields
+jira = JIRA(server=JIRA_SERVER, basic_auth=(JIRA_USERNAME, JIRA_PASSWORD))
+issue_dict = {
+    'project': {'key': PROJECT_KEY},
+    'issuetype': {'name': ISSUE_TYPE},
+    'summary': title,
+    'description': description,
+    'customfield_12345': cvss_score,  # Replace 12345 with the ID of the CVSS score custom field
+    'customfield_67890': remediation_suggestion  # Replace 67890 with the ID of the remediation suggestion custom field
+}
+new_issue = jira.create_issue(fields=issue_dict)
+print(f'Bug created with ID {new_issue.key}')

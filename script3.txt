@@ -1,0 +1,72 @@
+import requests
+import json
+
+checkmarx_api_base_url = "https://checkmarx/api"
+checkmarx_username = "YOUR_USERNAME"
+checkmarx_password = "YOUR_PASSWORD"
+checkmarx_project_id = "YOUR_PROJECT_ID"
+checkmarx_team_id = "YOUR_TEAM_ID"
+checkmarx_engine_config_id = "YOUR_ENGINE_CONFIG_ID"
+checkmarx_scan_preset_id = "YOUR_SCAN_PRESET_ID"
+
+
+def get_auth_token():
+    auth_url = checkmarx_api_base_url + "/auth/identity/connect/token"
+    headers = {
+        "Content-Type": "application/x-www-form-urlencoded"
+    }
+    data = {
+        "grant_type": "password",
+        "username": checkmarx_username,
+        "password": checkmarx_password,
+        "scope": "sast_rest_api"
+    }
+    response = requests.post(auth_url, headers=headers, data=data)
+    if response.status_code == 200:
+        return json.loads(response.text)["access_token"]
+    else:
+        raise Exception("Failed to authenticate with Checkmarx API")
+
+
+def initiate_scan(zip_path):
+    token = get_auth_token()
+
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+    }
+    scan_url = checkmarx_api_base_url + "/sast/scans"
+
+    # Prepare the scan request body
+    scan_data = {
+        "projectId": checkmarx_project_id,
+        "teamId": checkmarx_team_id,
+        "engineConfigurationId": checkmarx_engine_config_id,
+        "isIncremental": False,
+        "isPublic": False,
+        "forceScan": True,
+        "comment": "",
+        "customFields": [],
+        "scanPresetId": checkmarx_scan_preset_id,
+        "sources": [
+            {
+                "type": "Zip",
+                "name": "source.zip",
+                "filename": zip_path,
+                "projectRelativePath": ""
+            }
+        ]
+    }
+
+    # Send the scan request
+    response = requests.post(scan_url, headers=headers, json=scan_data)
+
+    if response.status_code == 201:
+        print("Scan initiated successfully.")
+    else:
+        print("Failed to initiate scan. Status code: {}".format(response.status_code))
+
+
+if _name_ == "_main_":
+    zip_path = input("Enter the path to the zipped source code: ")
+    initiate_scan(zip_path)
