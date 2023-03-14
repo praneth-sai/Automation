@@ -42,8 +42,6 @@ def create_excel_file(zip_path, excel_file_path):
         chart.set_y_axis({"name": "Size (bytes)"})
         chart_sheet.insert_chart("A1", chart)
 
-    print("Excel file created successfully!")
-
 
 # Example usage
 zip_path = input("Enter the path to the zipped source code: ")
